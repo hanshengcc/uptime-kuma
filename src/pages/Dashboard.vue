@@ -2,10 +2,14 @@
     <div class="container-fluid">
         <div class="row">
             <div v-if="!$root.isMobile" class="col-12 col-md-5 col-xl-4 ps-0">
-                <div>
-                    <router-link to="/add" class="btn btn-primary mb-3">
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    <router-link to="/add" class="btn btn-primary">
                         <font-awesome-icon icon="plus" />
                         {{ $t("Add New Monitor") }}
+                    </router-link>
+                    <router-link to="/bulk-add" class="btn btn-secondary">
+                        <font-awesome-icon icon="list" />
+                        {{ $t("Batch Add Monitors") }}
                     </router-link>
                 </div>
                 <MonitorList :scrollbar="true" />

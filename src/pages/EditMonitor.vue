@@ -161,8 +161,11 @@
                                     type="text"
                                     class="form-control"
                                     data-testid="friendly-name-input"
-                                    :placeholder="defaultFriendlyName"
+                                    :placeholder="isBulkAdd ? '[url]' : defaultFriendlyName"
                                 />
+                                <div v-if="isBulkAdd" class="form-text">
+                                    {{ $t("bulkNameHint") }}
+                                </div>
                             </div>
 
                             <!-- Manual Status switcher -->
@@ -191,7 +194,18 @@
                                 class="my-3"
                             >
                                 <label for="url" class="form-label">{{ $t("URL") }}</label>
+                                <textarea
+                                    v-if="isBulkAdd"
+                                    id="url"
+                                    v-model="bulkUrls"
+                                    class="form-control"
+                                    rows="6"
+                                    :placeholder="'https://example1.com\nhttps://example2.com\nhttps://example3.com'"
+                                    required
+                                    data-testid="url-input"
+                                ></textarea>
                                 <input
+                                    v-else
                                     id="url"
                                     v-model="monitor.url"
                                     type="url"
@@ -200,6 +214,9 @@
                                     required
                                     data-testid="url-input"
                                 />
+                                <div v-if="isBulkAdd" class="form-text">
+                                    {{ $t("bulkUrlsHint") }}
+                                </div>
                             </div>
 
                             <template v-if="monitor.type === 'websocket-upgrade'">
@@ -3177,6 +3194,7 @@ export default {
                 confirmed: false,
                 editedValue: false,
             },
+            bulkUrls: "",
         };
     },
 
@@ -3221,7 +3239,9 @@ export default {
 
         pageName() {
             let name = "Add New Monitor";
-            if (this.isClone) {
+            if (this.isBulkAdd) {
+                name = "Batch Add Monitors";
+            } else if (this.isClone) {
                 name = "Clone Monitor";
             } else if (this.isEdit) {
                 name = "Edit";
@@ -3258,6 +3278,10 @@ export default {
 
         isAdd() {
             return this.$route.path === "/add";
+        },
+
+        isBulkAdd() {
+            return this.$route.path === "/bulk-add";
         },
 
         isClone() {
@@ -3762,7 +3786,8 @@ message HealthCheckResponse {
          * @returns {void}
          */
         init() {
-            if (this.isAdd) {
+            if (this.isAdd || this.isBulkAdd) {
+                this.bulkUrls = "";
                 this.monitor = {
                     ...monitorDefaults,
                     ping_count: 3,
@@ -4032,7 +4057,7 @@ message HealthCheckResponse {
                 return;
             }
 
-            if (!this.monitor.name) {
+            if (!this.isBulkAdd && !this.monitor.name) {
                 this.monitor.name = this.defaultFriendlyName;
             }
 
@@ -4105,6 +4130,53 @@ message HealthCheckResponse {
                     this.processing = false;
                     return;
                 }
+            }
+
+            if (this.isBulkAdd) {
+                const urls = this.bulkUrls.split("\n").map((u) => u.trim()).filter((u) => u);
+                if (urls.length === 0) {
+                    this.$root.toastError(this.$t("Please enter at least one URL"));
+                    this.processing = false;
+                    return;
+                }
+
+                let successCount = 0;
+                let lastMonitorID = null;
+                const nameTemplate = this.monitor.name || "[url]";
+
+                let failCount = 0;
+
+                for (const url of urls) {
+                    const monitorData = {
+                        ...this.monitor,
+                        url: url,
+                        name: nameTemplate.replace(/\[url\]/g, url),
+                    };
+
+                    const res = await new Promise((resolve) => {
+                        this.$root.add(monitorData, resolve);
+                    });
+
+                    if (res.ok) {
+                        await this.$refs.tagsManager.submit(res.monitorID);
+                        successCount++;
+                        lastMonitorID = res.monitorID;
+                    } else {
+                        failCount++;
+                    }
+                }
+
+                this.processing = false;
+                if (successCount > 0) {
+                    this.$root.toastSuccess(this.$t("bulkAddSuccess", [successCount]));
+                }
+                if (failCount > 0) {
+                    this.$root.toastError(this.$t("bulkAddFail", [failCount]));
+                }
+                if (lastMonitorID) {
+                    this.$router.push("/dashboard/" + lastMonitorID);
+                }
+                return;
             }
 
             if (this.isAdd || this.isClone) {

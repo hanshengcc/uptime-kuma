@@ -80,6 +80,10 @@ const routes = [
                         ],
                     },
                     {
+                        path: "/bulk-add",
+                        component: EditMonitor,
+                    },
+                    {
                         path: "/list",
                         component: List,
                     },

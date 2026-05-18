@@ -3995,7 +3995,7 @@ message HealthCheckResponse {
                 mqtt: ["mqtt:", "ws:", "wss:"],
             };
 
-            if (this.monitor.type in acceptList) {
+            if (this.monitor.type in acceptList && !this.isBulkAdd) {
                 const allowedProtocols = acceptList[this.monitor.type];
 
                 try {
@@ -4133,7 +4133,11 @@ message HealthCheckResponse {
             }
 
             if (this.isBulkAdd) {
-                const urls = this.bulkUrls.split("\n").map((u) => u.trim()).filter((u) => u);
+                const urls = this.bulkUrls
+                    .split("\n")
+                    .map((u) => u.trim())
+                    .filter((u) => u)
+                    .map((u) => (/^[a-z][a-z\d+\-.]*:\/\//i.test(u) ? u : `https://${u}`));
                 if (urls.length === 0) {
                     this.$root.toastError(this.$t("Please enter at least one URL"));
                     this.processing = false;

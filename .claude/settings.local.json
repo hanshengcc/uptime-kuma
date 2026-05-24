@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n 'submit\\\\|this\\\\.$root\\\\.add\\\\|\\\\.add\\(' 'C:\\\\Users\\\\s\\\\Documents\\\\projects\\\\uptime-kuma\\\\.claude\\\\worktrees\\\\sharp-murdock-4e81df\\\\src\\\\pages\\\\EditMonitor.vue')"
+    ]
+  }
+}
